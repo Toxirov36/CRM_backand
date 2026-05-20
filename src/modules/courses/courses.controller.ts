@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, ParseIntPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { CoursesService } from './courses.service';
 import { ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { CourseLevel, Role } from '@prisma/client';
@@ -10,29 +10,54 @@ import { CreateCourseDto } from './dto/create.dto';
 @ApiBearerAuth()
 @Controller('courses')
 export class CoursesController {
-     constructor(private readonly courseService : CoursesService){}
-    
-        @ApiOperation({
-            summary:`${Role.SUPERADMIN}, ${Role.ADMIN}`
-        })
-        @UseGuards(AuthGuard,RolesGuard)
-        @Roles(Role.SUPERADMIN, Role.ADMIN)
-        @Get()
-        getAllCourses(){
-            return this.courseService.getAllCourses()
-        }
-    
-        @ApiOperation({
-            summary:`${Role.SUPERADMIN}, ${Role.ADMIN}`
-        })
-        @UseGuards(AuthGuard,RolesGuard)
-        @Roles(Role.SUPERADMIN, Role.ADMIN)
-        // @ApiQuery({name:"level",enum:CourseLevel})
-        @Post()
-        createCourse(
-            @Body() payload: CreateCourseDto,
-            // @Query("level") level : GetCoursesDto
-        ){
-            return this.courseService.createCourse(payload)
-        }
+    constructor(private readonly courseService: CoursesService) { }
+
+    @ApiOperation({
+        summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
+    })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
+    @Get()
+    getAllCourses() {
+        return this.courseService.getAllCourses()
+    }
+
+    @ApiOperation({
+        summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
+    })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
+    // @ApiQuery({name:"level",enum:CourseLevel})
+    @Post()
+    createCourse(
+        @Body() payload: CreateCourseDto,
+        // @Query("level") level : GetCoursesDto
+    ) {
+        return this.courseService.createCourse(payload)
+    }
+
+    @ApiOperation({
+        summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
+    })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
+    @Put("/update")
+    updateCourse(
+        @Query("id", ParseIntPipe) id: number,
+        @Body() payload: CreateCourseDto
+    ) {
+        return this.courseService.updateCourse(id, payload)
+    }
+
+    @ApiOperation({
+        summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
+    })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
+    @Delete("/delete")
+    deleteCourse(
+        @Query("id", ParseIntPipe) id: number
+    ) {
+        return this.courseService.deleteCourse(id)
+    }
 }

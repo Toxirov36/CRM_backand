@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { TeachersService } from './teachers.service';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
@@ -7,7 +7,7 @@ import { RolesGuard } from 'src/common/guards/role.guard';
 import { Roles } from 'src/common/decorators/role';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { CreateTeacherDto } from './dto/create.dto';
+import { CreateTeacherDto, UpdateTeacherDto } from './dto/create.dto';
 
 @ApiBearerAuth()
 @Controller('teachers')
@@ -72,5 +72,18 @@ export class TeachersController {
     @Roles(Role.SUPERADMIN, Role.ADMIN)
     deleteTeacher(@Param("id", ParseIntPipe) id: number) {
         return this.teacherService.deleteTeacher(id)
+    }
+
+    // controller
+    @Put(":id")
+    @UseInterceptors(FileInterceptor('photo'))
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
+    updateTeacher(
+        @Param("id", ParseIntPipe) id: number,
+        @Body() payload: UpdateTeacherDto,        // ✅ UpdateTeacherDto
+        @UploadedFile() file?: Express.Multer.File
+    ) {
+        return this.teacherService.updateTeacher(id, payload, file?.filename)
     }
 }

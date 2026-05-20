@@ -1,11 +1,11 @@
-import { Body, Controller, Delete, Get, ParseIntPipe, Post, Query, Req, UnsupportedMediaTypeException, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, Req, UnsupportedMediaTypeException, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { Role, StudentStatus } from '@prisma/client';
 import { StudentsService } from './students.service';
 import { AuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/role.guard';
 import { Roles } from 'src/common/decorators/role';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
-import { CreateStudentDto } from './dto/create.dto';
+import { CreateStudentDto, UpdateStudentDto } from './dto/create.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { PaginationDto } from './dto/pagination.dto';
@@ -21,7 +21,7 @@ export class StudentsController {
     @UseGuards(AuthGuard, RolesGuard)
     @Roles(Role.STUDENT)
     @Get("my/groups")
-    getMyGroups(@Req() req:  Request){
+    getMyGroups(@Req() req: Request) {
         return this.studentService.getMyGroups(req['user'])
     }
 
@@ -32,7 +32,7 @@ export class StudentsController {
     @Roles(Role.SUPERADMIN, Role.ADMIN)
     @Get()
     getAllStudents(
-        @Query() pagination : PaginationDto
+        @Query() pagination: PaginationDto
     ) {
         return this.studentService.getAllStudents(pagination)
     }
@@ -67,14 +67,14 @@ export class StudentsController {
                 cb(null, filename)
             }
         }),
-        fileFilter:(req,file,cb) =>{
-            const existFile = ["png","jpg","jpeg"]
+        fileFilter: (req, file, cb) => {
+            const existFile = ["png", "jpg", "jpeg"]
 
-            if(!existFile.includes(file.mimetype.split("/")[1])){
-                cb(new UnsupportedMediaTypeException(),false)
+            if (!existFile.includes(file.mimetype.split("/")[1])) {
+                cb(new UnsupportedMediaTypeException(), false)
             }
 
-            cb(null,true)
+            cb(null, true)
         }
     }))
 
@@ -97,5 +97,17 @@ export class StudentsController {
         @Query("id", ParseIntPipe) id: number
     ) {
         return this.studentService.deleteStudent(id)
+    }
+
+    @Put(":id")
+    @UseInterceptors(FileInterceptor('photo'))
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
+    updateStudent(
+        @Param("id", ParseIntPipe) id: number,
+        @Body() payload: UpdateStudentDto,        // ✅ UpdateStudentDto
+        @UploadedFile() file?: Express.Multer.File
+    ) {
+        return this.studentService.updateStudent(id, payload, file?.filename)
     }
 }

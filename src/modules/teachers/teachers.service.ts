@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/core/database/prisma.service';
-import { CreateTeacherDto } from './dto/create.dto';
+import { CreateTeacherDto, UpdateTeacherDto } from './dto/create.dto';
 import * as bcrypt from "bcrypt"
 import { Status } from '@prisma/client';
 
@@ -102,6 +102,40 @@ export class TeachersService {
         return {
             success: true,
             message: "Teacher deleted",
+        };
+    }
+
+    // service
+    async updateTeacher(id: number, payload: UpdateTeacherDto, filename?: string) {
+        const existTeacher = await this.prisma.teacher.findUnique({
+            where: { id },
+        });
+
+        if (!existTeacher) {
+            throw new BadRequestException("Bunday teacher mavjud emas");
+        }
+
+        // ✅ Parol faqat kelsa hash qilinadi
+        const hashPass = payload.password
+            ? await bcrypt.hash(payload.password, 10)
+            : existTeacher.password;
+
+        await this.prisma.teacher.update({
+            where: { id },
+            data: {
+                first_name: payload.first_name ?? existTeacher.first_name,
+                last_name: payload.last_name ?? existTeacher.last_name,
+                photo: filename ?? existTeacher.photo,
+                phone: payload.phone ?? existTeacher.phone,
+                email: payload.email ?? existTeacher.email,
+                password: hashPass,
+                address: payload.address ?? existTeacher.address,
+            },
+        });
+
+        return {
+            success: true,
+            message: "Teacher updated",
         };
     }
 }

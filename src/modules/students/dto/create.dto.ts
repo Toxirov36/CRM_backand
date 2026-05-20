@@ -1,33 +1,35 @@
-import { ApiProperty } from "@nestjs/swagger"
+import { ApiProperty, PartialType } from "@nestjs/swagger"
 import { IsDateString, IsEmail, IsMobilePhone, IsString } from "class-validator"
 
 
 export class CreateStudentDto {
     @ApiProperty()
     @IsString()
-    first_name: string
+    first_name!: string
 
     @ApiProperty()
     @IsString()
-    last_name: string
+    last_name!: string
 
     @ApiProperty()
     @IsString()
-    password: string
+    password!: string
 
     @ApiProperty()
     @IsMobilePhone()
-    phone: string
+    phone!: string
 
     @ApiProperty()
     @IsEmail()
-    email: string
+    email!: string
 
     @ApiProperty()
     @IsDateString()
-    birth_date: string
+    birth_date!: string
 
     @ApiProperty()
     @IsString()
-    address: string
+    address!: string
 }
+
+export class UpdateStudentDto extends PartialType(CreateStudentDto) {}
