@@ -5,5 +5,5 @@ import { IsString } from "class-validator";
 export class CreateRoomDto{
     @ApiProperty()
     @IsString()
-    name:string
+    name!:string
 }

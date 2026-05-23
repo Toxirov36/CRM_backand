@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, Req, UnsupportedMediaTypeException, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, Query, Req, UnsupportedMediaTypeException, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { Role, StudentStatus } from '@prisma/client';
 import { StudentsService } from './students.service';
 import { AuthGuard } from 'src/common/guards/jwt-auth.guard';
@@ -35,6 +35,18 @@ export class StudentsController {
         @Query() pagination: PaginationDto
     ) {
         return this.studentService.getAllStudents(pagination)
+    }
+
+
+
+    @ApiOperation({
+        summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`,
+    })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
+    @Get("inactive")
+    getInactiveStudents() {
+        return this.studentService.getInactiveStudents()
     }
 
     @ApiOperation({
@@ -94,7 +106,7 @@ export class StudentsController {
     @UseGuards(AuthGuard, RolesGuard)
     @Roles(Role.SUPERADMIN, Role.ADMIN)
     deleteStudent(
-        @Query("id", ParseIntPipe) id: number
+        @Param("id", ParseIntPipe) id: number
     ) {
         return this.studentService.deleteStudent(id)
     }
@@ -109,5 +121,10 @@ export class StudentsController {
         @UploadedFile() file?: Express.Multer.File
     ) {
         return this.studentService.updateStudent(id, payload, file?.filename)
+    }
+
+    @Patch(':id/activate')
+    activateStudent(@Param('id', ParseIntPipe) id: number) {
+        return this.studentService.activateStudent(id);
     }
 }

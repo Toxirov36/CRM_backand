@@ -129,8 +129,8 @@ model Room {
 }
 
 model Group {
-  id          Int         @id @default(autoincrement())
-  name        String      @unique
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
   description String?
   course_id   Int
   teacher_id  Int
@@ -139,9 +139,9 @@ model Group {
   week_day    String[]
   start_time  String
   max_student Int
-  status      GroupStatus @default(active)
-  created_at  DateTime    @default(now())
-  update_at   DateTime    @default(now())
+  status      Status   @default(active)
+  created_at  DateTime @default(now())
+  update_at   DateTime @default(now())
 
   courses       Course         @relation(fields: [course_id], references: [id])
   teachers      Teacher        @relation(fields: [teacher_id], references: [id])

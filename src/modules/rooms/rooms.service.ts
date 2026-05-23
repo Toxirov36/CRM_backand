@@ -5,36 +5,107 @@ import { Status } from '@prisma/client';
 
 @Injectable()
 export class RoomsService {
-    constructor(private prisma : PrismaService){}
+    constructor(private prisma: PrismaService) { }
 
-    async getAllRooms(){
+    async getAllRooms() {
         const rooms = await this.prisma.room.findMany({
-            where:{status:Status.active}
+            where: { status: Status.active }
         })
 
         return {
-            success : true,
-            data:rooms
+            success: true,
+            data: rooms
         }
     }
 
-    async createRoom(payload : CreateRoomDto){
+    async createRoom(payload: CreateRoomDto) {
 
         const existRoom = await this.prisma.room.findUnique({
-            where:{name:payload.name}
+            where: { name: payload.name }
         })
 
-        if(existRoom) {
+        if (existRoom) {
             throw new ConflictException("Room already exists")
         }
 
         await this.prisma.room.create({
-            data:payload
+            data: payload
         })
 
         return {
-            success : true,
-            message : "Room created"
+            success: true,
+            message: "Room created"
+        }
+    }
+
+    async deleteRoom(id: number) {
+        const existRoom = await this.prisma.room.findUnique({
+            where: { id }
+        })
+
+        if (!existRoom) {
+            throw new ConflictException("Room not found")
+        }
+
+        await this.prisma.room.update({
+            where: { id },
+            data: { status: Status.inactive }
+        })
+
+        return {
+            success: true,
+            message: "Room deleted"
+        }
+    }
+
+    async updateRoom(id: number, payload: CreateRoomDto) {
+        const existRoom = await this.prisma.room.findUnique({
+            where: { id }
+        })
+
+        if (!existRoom) {
+            throw new ConflictException("Room not found")
+        }
+
+        await this.prisma.room.update({
+            where: { id },
+            data: payload
+        })
+
+        return {
+            success: true,
+            message: "Room updated"
+        }
+    }
+
+    async getInactiveRooms() {
+        const rooms = await this.prisma.room.findMany({
+            where: { status: Status.inactive }
+        })
+
+        return {
+            success: true,
+            data: rooms
+        }
+    }
+
+    async activateRoom(id: number) {
+        const existRoom = await this.prisma.room.findUnique({
+            where: { id }
+        })
+
+        if (!existRoom) {
+            throw new ConflictException("Room not found")
+        }
+
+        await this.prisma.room.update({
+            where: { id },
+            data: { status: Status.active }
+        })
+
+        return {
+            success: true,
+            message: "Room restored"
         }
     }
 }

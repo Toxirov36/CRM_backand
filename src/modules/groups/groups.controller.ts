@@ -13,15 +13,11 @@ import { filterDto } from './dto/search';
 export class GroupsController {
     constructor(private readonly groupService: GroupsService) { }
 
-    @ApiOperation({
-        summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
-    })
-    @UseGuards(AuthGuard, RolesGuard)
-    @Roles(Role.SUPERADMIN, Role.ADMIN)
+
     @Get("one/students/:groupId")
     getGroupOne(
-        @Param("groupId", ParseIntPipe) groupId : number
-    ){
+        @Param("groupId", ParseIntPipe) groupId: number
+    ) {
         return this.groupService.getGroupOne(groupId)
     }
 
@@ -32,9 +28,19 @@ export class GroupsController {
     @Roles(Role.SUPERADMIN, Role.ADMIN)
     @Get("all")
     getAllGroups(
-        @Query() search : filterDto
+        @Query() search: filterDto
     ) {
         return this.groupService.getAllGroups(search)
+    }
+
+    @ApiOperation({
+        summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
+    })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
+    @Get("allInactive")
+    getAllGroupsInactive() {
+        return this.groupService.getAllInactiveGroups()
     }
 
     @ApiOperation({
@@ -45,5 +51,16 @@ export class GroupsController {
     @Post()
     createGroup(@Body() payload: CreateGroupDto) {
         return this.groupService.createGroup(payload)
-    } 
+    }
+
+    @ApiOperation({
+        summary: 'Guruh dars jadvalini oylar bo\'yicha qaytaradi. Misol: { 1: ["2026-01-15", ...], 2: [...] }'
+    })
+    @Get(":id/schedules")
+    getGroupSchedules(
+        @Param("id", ParseIntPipe) id: number
+    ) {
+        return this.groupService.getGroupSchedules(id)
+    }
 }
+

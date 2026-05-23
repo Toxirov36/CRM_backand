@@ -27,6 +27,16 @@ export class CoursesController {
     })
     @UseGuards(AuthGuard, RolesGuard)
     @Roles(Role.SUPERADMIN, Role.ADMIN)
+    @Get("inactive")
+    async getInactiveCourses() {
+        return this.courseService.getInactiveCourses()
+    }
+
+    @ApiOperation({
+        summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
+    })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
     // @ApiQuery({name:"level",enum:CourseLevel})
     @Post()
     createCourse(
@@ -59,5 +69,17 @@ export class CoursesController {
         @Query("id", ParseIntPipe) id: number
     ) {
         return this.courseService.deleteCourse(id)
+    }
+
+    @ApiOperation({
+        summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`,
+    })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
+    @Put("/activate")
+    activateCourse(
+        @Query("id", ParseIntPipe) id: number
+    ) {
+        return this.courseService.activateCourse(id)
     }
 }

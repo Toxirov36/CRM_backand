@@ -18,6 +18,17 @@ export class CoursesService {
         }
     }
 
+    async getInactiveCourses() {
+        const courses = await this.prisma.course.findMany({
+            where: { status: Status.inactive }
+        })
+
+        return {
+            success: true,
+            data: courses
+        }
+    }
+
     async createCourse(payload: CreateCourseDto) {
         const existCourse = await this.prisma.course.findUnique({
             where: { name: payload.name }
@@ -82,6 +93,27 @@ export class CoursesService {
         return {
             success: true,
             message: "Course deleted"
+        }
+    }
+
+    async activateCourse(id: number) {
+
+        const existCourse = await this.prisma.course.findUnique({
+            where: { id }
+        })
+
+        if (!existCourse) {
+            throw new ConflictException("Course not found")
+        }
+
+        await this.prisma.course.update({
+            where: { id },
+            data: { status: Status.active }
+        })
+
+        return {
+            success: true,
+            message: "Course activated"
         }
     }
 }

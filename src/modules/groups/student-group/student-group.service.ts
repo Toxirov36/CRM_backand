@@ -11,6 +11,21 @@ export class StudentGroupService {
         const studentGroups = await this.prisma.studentGroup.findMany({
             where:{
                 status:Status.active
+            },
+            select:{
+                id:true,
+                students:{
+                    select:{
+                        id:true,
+                        first_name:true
+                    }
+                },
+                groups:{
+                    select:{
+                        id:true,
+                        name:true
+                    }
+                }
             }
         })
 

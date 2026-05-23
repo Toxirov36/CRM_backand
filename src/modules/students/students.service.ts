@@ -67,6 +67,36 @@ export class StudentsService {
         }
     }
 
+    async getInactiveStudents() {
+        const students = await this.prisma.student.findMany({
+            where: {
+                status: Status.inactive
+            },
+            select: {
+                id: true,
+                first_name: true,
+                last_name: true,
+                phone: true,
+                photo: true,
+                email: true,
+                address: true,
+                birth_date: true,
+                created_at: true
+            }
+        })
+
+        const BASE_URL = "http://localhost:3000";
+        const result = students.map(s => ({
+            ...s,
+            photo: s.photo ? `${BASE_URL}/uploads/${s.photo}` : null,
+        }));
+
+        return {
+            success: true,
+            data: result
+        }
+    }
+
     async createStudent(payload: CreateStudentDto, filename?: string) {
 
         const existStudent = await this.prisma.student.findFirst({
@@ -165,5 +195,14 @@ export class StudentsService {
             success: true,
             message: "Student updated",
         };
+    }
+
+    // students.service.ts
+    async activateStudent(id: number) {
+        const student = await this.prisma.student.update({
+            where: { id },
+            data: { status: Status.active },
+        });
+        return { success: true, message: "Student activated" };
     }
 }

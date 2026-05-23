@@ -44,6 +44,41 @@ export class TeachersService {
         }
     }
 
+    async getInactiveTeachers() {
+        const teachers = await this.prisma.teacher.findMany({
+            where: {
+                status: Status.inactive
+            },
+            select: {
+                id: true,
+                first_name: true,
+                last_name: true,
+                phone: true,
+                photo: true,
+                email: true,
+                address: true,
+                created_at: true,
+
+                groups: {
+                    select: {
+                        name: true
+                    }
+                }
+            }
+        })
+
+        const BASE_URL = "http://localhost:3000";
+        const result = teachers.map(s => ({
+            ...s,
+            photo: s.photo ? `${BASE_URL}/uploads/${s.photo}` : null,
+        }));
+
+        return {
+            success: true,
+            data: result
+        }
+    }
+
     async createTeacher(payload: CreateTeacherDto, filename?: string) {
 
         const existTeacher = await this.prisma.teacher.findFirst({
@@ -137,5 +172,13 @@ export class TeachersService {
             success: true,
             message: "Teacher updated",
         };
+    }
+
+    async activateTeacher(id: number) {
+        const teacher = await this.prisma.teacher.update({
+            where: { id },
+            data: { status: Status.active },
+        });
+        return { success: true, message: "Teacher activated" };
     }
 }

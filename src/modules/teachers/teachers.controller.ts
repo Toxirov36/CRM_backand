@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { TeachersService } from './teachers.service';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
@@ -22,6 +22,16 @@ export class TeachersController {
     @Get()
     getAllTeachers() {
         return this.teacherService.getAllTeachers()
+    }
+
+    @ApiOperation({
+        summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`,
+    })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
+    @Get("inactive")
+    getInactiveTeachers() {
+        return this.teacherService.getInactiveTeachers()
     }
 
     @ApiOperation({
@@ -85,5 +95,10 @@ export class TeachersController {
         @UploadedFile() file?: Express.Multer.File
     ) {
         return this.teacherService.updateTeacher(id, payload, file?.filename)
+    }
+
+    @Patch(':id/activate')
+    activateTeacher(@Param('id', ParseIntPipe) id: number) {
+        return this.teacherService.activateTeacher(id);
     }
 }
