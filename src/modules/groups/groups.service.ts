@@ -90,13 +90,36 @@ export class GroupsService {
                         first_name: true,
                         last_name: true
                     }
+                },
+                studentGroups: {
+                    where: {
+                        status: Status.active
+                    },
+                    select: {
+                        id: true,
+                        students: {
+                            select: {
+                                id: true,
+                                first_name: true,
+                                last_name: true,
+                            }
+                        }
+                    }
                 }
             }
         })
 
+        const dataFormatter = groups.map(g => {
+            const { studentGroups, ...rest } = g;
+            return {
+                ...rest,
+                students: studentGroups.map(sg => sg.students)
+            };
+        });
+
         return {
             success: true,
-            data: groups
+            data: dataFormatter
         }
     }
 

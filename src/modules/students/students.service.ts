@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Injectable } from '@nestjs/comm
 import { PrismaService } from 'src/core/database/prisma.service';
 import { CreateStudentDto, UpdateStudentDto } from './dto/create.dto';
 import * as bcrypt from "bcrypt"
-import { Status } from '@prisma/client';
+import { Role, Status } from '@prisma/client';
 import { EmailService } from 'src/common/email/email.service';
 import { PaginationDto } from './dto/pagination.dto';
 
@@ -36,24 +36,34 @@ export class StudentsService {
 
     async getAllStudents(pagination: PaginationDto) {
         const { page, limit } = pagination
-        const students = await this.prisma.student.findMany({
-            where: {
-                status: Status.active
-            },
-            select: {
-                id: true,
-                first_name: true,
-                last_name: true,
-                phone: true,
-                photo: true,
-                email: true,
-                address: true,
-                birth_date: true,
-                created_at: true
-            },
-            skip: (limit ? +limit : 10) * (page ? +page - 1 : 0),
-            take: limit ? +limit : 10
-        })
+        const take = limit ? +limit : 10;
+        const skip = take * (page ? +page - 1 : 0);
+
+        const [students, total] = await Promise.all([
+            this.prisma.student.findMany({
+                where: {
+                    status: Status.active
+                },
+                select: {
+                    id: true,
+                    first_name: true,
+                    last_name: true,
+                    phone: true,
+                    photo: true,
+                    email: true,
+                    address: true,
+                    birth_date: true,
+                    created_at: true
+                },
+                skip,
+                take
+            }),
+            this.prisma.student.count({
+                where: {
+                    status: Status.active
+                }
+            })
+        ]);
 
         const BASE_URL = "http://localhost:3000";
         const result = students.map(s => ({
@@ -63,7 +73,8 @@ export class StudentsService {
 
         return {
             success: true,
-            data: result
+            data: result,
+            total
         }
     }
 
@@ -115,7 +126,7 @@ export class StudentsService {
 
         const hashPass = await bcrypt.hash(payload.password, 10)
 
-        await this.prisma.student.create({
+        const newStudent = await this.prisma.student.create({
             data: {
                 first_name: payload.first_name,
                 last_name: payload.last_name,
@@ -132,7 +143,8 @@ export class StudentsService {
 
         return {
             success: true,
-            message: "Student created"
+            message: "Student created",
+            data: { id: newStudent.id }
         }
     }
 
@@ -197,12 +209,43 @@ export class StudentsService {
         };
     }
 
-    // students.service.ts
     async activateStudent(id: number) {
         const student = await this.prisma.student.update({
             where: { id },
             data: { status: Status.active },
         });
         return { success: true, message: "Student activated" };
+    }
+
+    async createHomeworkAnswer(homeworkId: number, title: string, id: number, file?: string) {
+        const existHomework = await this.prisma.homework.findUnique({
+            where: { id: homeworkId },
+        });
+
+        if (!existHomework) {
+            throw new BadRequestException("Bunday uy ishi mavjud emas");
+        }
+
+        const existHomeworkAnswer = await this.prisma.homeworkAnswerStudent.findFirst({
+            where: {
+                homework_id: homeworkId,
+                student_id: id
+            }
+        });
+
+        if (existHomeworkAnswer) {
+            throw new BadRequestException("Bunday uy ishi javobi mavjud");
+        }
+
+        await this.prisma.homeworkAnswerStudent.create({
+            data: {
+                homework_id: homeworkId,
+                student_id: id,
+                title,
+                file
+            }
+        });
+
+        return { success: true, message: "Homework answer created" };
     }
 }

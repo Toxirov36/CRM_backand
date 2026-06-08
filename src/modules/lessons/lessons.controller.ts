@@ -40,6 +40,18 @@ export class LessonsController {
         summary:`${Role.ADMIN}, ${Role.TEACHER}`
     })
     @UseGuards(AuthGuard,RolesGuard)
+    @Roles(Role.ADMIN,Role.SUPERADMIN,Role.TEACHER)
+    @Get("group/:groupId")
+    getLessonsByGroup(
+        @Param("groupId", ParseIntPipe) groupId: number
+    ){
+        return this.lessonService.getLessonsByGroup(groupId)
+    }
+
+    @ApiOperation({
+        summary:`${Role.ADMIN}, ${Role.TEACHER}`
+    })
+    @UseGuards(AuthGuard,RolesGuard)
     @Roles(Role.ADMIN,Role.TEACHER,Role.SUPERADMIN)
     @Post()
     createLesson(

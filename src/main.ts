@@ -8,12 +8,16 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.useGlobalPipes(new ValidationPipe({
-    whitelist: true
+    whitelist: true,
+    transform: true,
+    transformOptions: {
+      enableImplicitConversion: true
+    }
   }))
 
   app.setGlobalPrefix("api/v1")
 
-  app.useStaticAssets(join(process.cwd(), 'src/uploads'), { prefix: '/uploads/' });
+  app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads/' });
   console.log("Uploads path:", join(process.cwd(), 'uploads'));
   const config = new DocumentBuilder()
     .setTitle("CRM N26 group")

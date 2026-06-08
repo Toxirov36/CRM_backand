@@ -1,11 +1,11 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, Query, Req, UnsupportedMediaTypeException, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
-import { Role, StudentStatus } from '@prisma/client';
+import { HomeworkStatus, Role, StudentStatus } from '@prisma/client';
 import { StudentsService } from './students.service';
 import { AuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/role.guard';
 import { Roles } from 'src/common/decorators/role';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
-import { CreateStudentDto, UpdateStudentDto } from './dto/create.dto';
+import { CreateHomeworkAnswerDto, CreateStudentDto, UpdateStudentDto } from './dto/create.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { PaginationDto } from './dto/pagination.dto';
@@ -36,7 +36,6 @@ export class StudentsController {
     ) {
         return this.studentService.getAllStudents(pagination)
     }
-
 
 
     @ApiOperation({
@@ -126,5 +125,50 @@ export class StudentsController {
     @Patch(':id/activate')
     activateStudent(@Param('id', ParseIntPipe) id: number) {
         return this.studentService.activateStudent(id);
+    }
+
+
+    @ApiOperation({
+        summary: `${Role.STUDENT}`,
+    })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.STUDENT)
+    @ApiConsumes("multipart/form-data")
+    @ApiBody({
+        schema: {
+            type: 'object',
+            properties: {
+                title: { type: 'string' },
+                file: { type: 'string', format: 'binary' },
+            }
+        }
+    })
+    @UseInterceptors(FileInterceptor('file', {
+        storage: diskStorage({
+            destination: "./src/uploads/homeworkAnswers",
+            filename: (req, file, cb) => {
+                const filename = Date.now() + "." + file.mimetype.split("/")[1]
+                cb(null, filename)
+            }
+        }),
+        // fileFilter: (req, file, cb) => {
+        //     const existFile = ["png", "jpg", "jpeg"]
+
+        //     if (!existFile.includes(file.mimetype.split("/")[1])) {
+        //         cb(new UnsupportedMediaTypeException(), false)
+        //     }
+
+        //     cb(null, true)
+        // }
+    }))
+    @Post(':homeworkId/answer')
+    createHomeworkAnswer(
+        @Param("homeworkId", ParseIntPipe) homeworkId: number,
+        @Req() req: Request,
+        @Body() payload: CreateHomeworkAnswerDto,
+        @UploadedFile() file?: Express.Multer.File
+    ) {
+        const { id } = req['user']
+        return this.studentService.createHomeworkAnswer(homeworkId, payload.title, id, file?.filename)
     }
 }

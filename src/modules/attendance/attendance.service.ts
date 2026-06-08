@@ -64,30 +64,30 @@ export class AttendanceService {
             throw new ForbiddenException("Is not your lesson")
         }
 
-        const week_day = lessonGroup?.groups.week_day
-        const nowDate = new Date()
-        const day = nowDate.getDay()
+        // const week_day = lessonGroup?.groups.week_day
+        // const nowDate = new Date()
+        // const day = nowDate.getDay()
 
-        if (!week_day?.includes(week[day])) {
-            throw new BadRequestException("Dars vaqti xali boshlanmadi")
-        }
+        // if (!week_day?.includes(week[day])) {
+        //     throw new BadRequestException("Dars vaqti xali boshlanmadi")
+        // }
 
-        const timeToMinutes = (time: string) => {
-            const [h, m] = time.split(":").map(Number);
-            return h * 60 + m;
-        };
+        // const timeToMinutes = (time: string) => {
+        //     const [h, m] = time.split(":").map(Number);
+        //     return h * 60 + m;
+        // };
 
-        const startMinute = timeToMinutes(lessonGroup!.groups.start_time);
-        const endMinute = startMinute + lessonGroup!.groups.courses.duration_hours * 60;
-        const nowMinute = nowDate.getHours() * 60 + nowDate.getMinutes()
+        // const startMinute = timeToMinutes(lessonGroup!.groups.start_time);
+        // const endMinute = startMinute + lessonGroup!.groups.courses.duration_hours * 60;
+        // const nowMinute = nowDate.getHours() * 60 + nowDate.getMinutes()
 
-        if (!(lessonGroup.created_at.getTime() < Date.now()) && startMinute > nowMinute ) {
-            throw new BadRequestException("Dars hali boshlanmadi")
-        }
+        // if (!(lessonGroup.created_at.getTime() < Date.now()) && startMinute > nowMinute ) {
+        //     throw new BadRequestException("Dars hali boshlanmadi")
+        // }
 
-        if (!(startMinute < nowMinute && endMinute > nowMinute) && currentUser.role == Role.TEACHER) {
-            throw new BadRequestException("Dars vaqtidan tashqarida davomat qilib bo'lmaydi")
-        }
+        // if (!(startMinute < nowMinute && endMinute > nowMinute) && currentUser.role == Role.TEACHER) {
+        //     throw new BadRequestException("Dars vaqtidan tashqarida davomat qilib bo'lmaydi")
+        // }
 
         await this.prisma.attendance.create({
             data: {

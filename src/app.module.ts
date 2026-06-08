@@ -13,6 +13,7 @@ import { join } from "path"
 import { LessonsModule } from './modules/lessons/lessons.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { HomeworkModule } from './modules/homework/homework.module';
+import { VideosModule } from './modules/videos/videos.module';
 
 @Module({
   imports: [
@@ -34,7 +35,8 @@ import { HomeworkModule } from './modules/homework/homework.module';
     RoomsModule,
     LessonsModule,
     AttendanceModule,
-    HomeworkModule
+    HomeworkModule,
+    VideosModule
   ],
 })
 export class AppModule { }

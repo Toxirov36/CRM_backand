@@ -60,6 +60,40 @@ export class LessonsService {
         }
     }
 
+    async getLessonsByGroup(groupId: number){
+        const existGroup = await this.prisma.group.findFirst({
+            where:{
+                id: groupId,
+                status: Status.active
+            }
+        })
+
+        if(!existGroup){
+            throw new NotFoundException("Group not found with this id")
+        }
+
+        const lessons = await this.prisma.lesson.findMany({
+            where:{
+                group_id: groupId,
+                status: Status.active
+            },
+            select:{
+                id: true,
+                topic: true,
+                description: true,
+                created_at: true
+            },
+            orderBy:{
+                created_at: 'desc'
+            }
+        })
+
+        return {
+            success: true,
+            data: lessons
+        }
+    }
+
     async createLesson(payload: CreateLessonDto, currentUser: { id: number, role: Role }) {
 
         const existGroup = await this.prisma.group.findFirst({
@@ -77,7 +111,7 @@ export class LessonsService {
             throw new ForbiddenException("Bu seni guruhing emas")
         }
 
-        await this.prisma.lesson.create({
+        const newLesson = await this.prisma.lesson.create({
             data: {
                 ...payload,
                 teacher_id: currentUser.role == "TEACHER" ? currentUser.id : null,
@@ -87,7 +121,8 @@ export class LessonsService {
 
         return {
             success: true,
-            message: "Lesson created"
+            message: "Lesson created",
+            data: newLesson
         }
     }
 }
