@@ -14,10 +14,17 @@ enum CourseLevel {
 
 enum HomeworkStatus {
   pending
-  checked
   completed
   failed
+  checked
   rejected
+}
+
+enum TeacherGroupStatus {
+  active
+  inactive
+  planned
+  completed
 }
 
 enum Role {
@@ -93,6 +100,7 @@ model Student {
   studentGroups          StudentGroup[]
   attendances            Attendance[]
   homeworkAnswerStudents HomeworkAnswerStudent[]
+  notifications          Notification[]
 }
 
 model Teacher {
@@ -135,6 +143,7 @@ model Course {
 model Room {
   id         Int      @id @default(autoincrement())
   name       String   @unique
+  capacity   Int      @default(0)
   created_at DateTime @default(now())
   update_at  DateTime @default(now())
   status     Status   @default(active)
@@ -295,13 +304,34 @@ model HomeworkResult {
 }
 
 model GroupTeacher {
-  id         Int      @id @default(autoincrement())
+  id         Int                @id @default(autoincrement())
   group_id   Int
   teacher_id Int
-  created_at DateTime @default(now())
+  status     TeacherGroupStatus @default(active)
+  created_at DateTime           @default(now())
 
   group   Group   @relation(fields: [group_id], references: [id])
   teacher Teacher @relation(fields: [teacher_id], references: [id])
 
   @@unique([group_id, teacher_id])
+}
+
+model Notification {
+  id         Int      @id @default(autoincrement())
+  student_id Int
+  student    Student  @relation(fields: [student_id], references: [id])
+  title      String
+  message    String
+  type       String   @default("HOMEWORK")
+  is_read    Boolean  @default(false)
+  created_at DateTime @default(now())
+}
+
+model PasswordResetCode {
+  id         Int      @id @default(autoincrement())
+  phone      String
+  code       String
+  expires_at DateTime
+  used       Boolean  @default(false)
+  created_at DateTime @default(now())
 }

@@ -17,8 +17,8 @@ async function bootstrap() {
 
   app.setGlobalPrefix("api/v1")
 
-  app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads/' });
-  console.log("Uploads path:", join(process.cwd(), 'uploads'));
+  app.useStaticAssets(join(process.cwd(), 'src', 'uploads'), { prefix: '/uploads/' });
+  console.log("Uploads path:", join(process.cwd(), 'src', 'uploads'));
   const config = new DocumentBuilder()
     .setTitle("CRM N26 group")
     .addBearerAuth()

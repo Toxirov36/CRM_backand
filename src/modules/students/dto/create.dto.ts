@@ -42,3 +42,13 @@ export class CreateHomeworkAnswerDto {
     @IsString()
     title: string;
 }
+
+export class ChangePasswordDto {
+    @ApiProperty()
+    @IsString()
+    currentPassword!: string;
+
+    @ApiProperty()
+    @IsString()
+    newPassword!: string;
+}

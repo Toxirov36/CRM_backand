@@ -1,16 +1,19 @@
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/core/database/prisma.service';
-import { CreateStudentDto, UpdateStudentDto } from './dto/create.dto';
+import { CreateStudentDto, UpdateStudentDto, ChangePasswordDto } from './dto/create.dto';
 import * as bcrypt from "bcrypt"
 import { Role, Status } from '@prisma/client';
 import { EmailService } from 'src/common/email/email.service';
 import { PaginationDto } from './dto/pagination.dto';
+import { group } from 'console';
+import { EskizService } from 'src/common/service/sms';
 
 @Injectable()
 export class StudentsService {
     constructor(
         private prisma: PrismaService,
-        private emailService: EmailService
+        private emailService: EmailService,
+        private readonly smsService: EskizService,
     ) { }
 
     async getMyGroups(currentUser: { id: number }) {
@@ -19,18 +22,40 @@ export class StudentsService {
                 student_id: currentUser.id
             },
             select: {
+                status: true,
                 groups: {
                     select: {
                         id: true,
-                        name: true
+                        name: true,
+                        start_date: true,
+                        courses: {
+                            select: {
+                                name: true,
+                            }
+                        },
+                        _count: {
+                            select: {
+                                groupTeachers: true
+                            }
+                        }
                     }
                 }
             }
         })
 
+        const formattedGroup = myGroups.map(el => ({
+            groupName: el.groups.name,
+            course: el.groups.courses.name,
+            teachersCount: el.groups._count.groupTeachers,
+            startDate: el.groups.start_date,
+            groupId: el.groups.id
+        }))
+
+        console.log(formattedGroup)
+
         return {
             success: true,
-            data: myGroups.map(el => el.groups)
+            data: formattedGroup
         }
     }
 
@@ -140,6 +165,7 @@ export class StudentsService {
         })
 
         // await this.emailService.sendEmail(payload.email,payload.phone,payload.password)
+        await this.smsService.sendSms(payload.phone, `NajotEdu kabinetingiz https://najotedu.softwareengineer.uz/login.\n Login: ${payload.phone} Parol: ${payload.password}}`)
 
         return {
             success: true,
@@ -247,5 +273,63 @@ export class StudentsService {
         });
 
         return { success: true, message: "Homework answer created" };
+    }
+
+    async getMyProfile(id: number) {
+        const student = await this.prisma.student.findUnique({
+            where: { id },
+            select: {
+                id: true,
+                first_name: true,
+                last_name: true,
+                phone: true,
+                email: true,
+                birth_date: true,
+                address: true,
+                photo: true,
+                status: true,
+            }
+        });
+
+        if (!student) {
+            throw new BadRequestException("Student topilmadi");
+        }
+
+        const BASE_URL = "http://localhost:3000";
+        return {
+            success: true,
+            data: {
+                ...student,
+                photo: student.photo ? `${BASE_URL}/uploads/${student.photo}` : null,
+            }
+        };
+    }
+
+    async changeMyPassword(id: number, payload: ChangePasswordDto) {
+        const student = await this.prisma.student.findUnique({
+            where: { id },
+        });
+
+        if (!student) {
+            throw new BadRequestException("Student topilmadi");
+        }
+
+        const isMatch = await bcrypt.compare(payload.currentPassword, student.password);
+        if (!isMatch) {
+            throw new BadRequestException("Amaldagi parol noto'g'ri");
+        }
+
+        const hashPass = await bcrypt.hash(payload.newPassword, 10);
+        await this.prisma.student.update({
+            where: { id },
+            data: {
+                password: hashPass,
+            },
+        });
+
+        return {
+            success: true,
+            message: "Parol muvaffaqiyatli o'zgartirildi",
+        };
     }
 }

@@ -5,7 +5,7 @@ import { AuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/role.guard';
 import { Roles } from 'src/common/decorators/role';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation } from '@nestjs/swagger';
-import { CreateHomeworkAnswerDto, CreateStudentDto, UpdateStudentDto } from './dto/create.dto';
+import { CreateHomeworkAnswerDto, CreateStudentDto, UpdateStudentDto, ChangePasswordDto } from './dto/create.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { PaginationDto } from './dto/pagination.dto';
@@ -170,5 +170,30 @@ export class StudentsController {
     ) {
         const { id } = req['user']
         return this.studentService.createHomeworkAnswer(homeworkId, payload.title, id, file?.filename)
+    }
+
+    @ApiOperation({
+        summary: 'Get logged-in student profile',
+    })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.STUDENT)
+    @Get("my/profile")
+    getMyProfile(@Req() req: Request) {
+        const { id } = req['user']
+        return this.studentService.getMyProfile(id)
+    }
+
+    @ApiOperation({
+        summary: 'Change student password',
+    })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.STUDENT)
+    @Patch("my/password")
+    changeMyPassword(
+        @Req() req: Request,
+        @Body() payload: ChangePasswordDto
+    ) {
+        const { id } = req['user']
+        return this.studentService.changeMyPassword(id, payload)
     }
 }

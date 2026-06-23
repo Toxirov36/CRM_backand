@@ -36,6 +36,7 @@ export class AttendanceService {
                 created_at:true,
                 groups: {
                     select: {
+                        id: true,
                         start_time: true,
                         start_date: true,
                         teacher_id: true,
@@ -60,8 +61,17 @@ export class AttendanceService {
             throw new BadRequestException("Student not found whth this group")
         }
 
-        if (currentUser.role == Role.TEACHER && lessonGroup?.groups.teacher_id != currentUser.id) {
-            throw new ForbiddenException("Is not your lesson")
+        if (currentUser.role == Role.TEACHER) {
+            const isAssigned = await this.prisma.groupTeacher.findFirst({
+                where: {
+                    group_id: lessonGroup?.groups.id,
+                    teacher_id: currentUser.id,
+                    status: 'active'
+                }
+            });
+            if (!isAssigned && lessonGroup?.groups.teacher_id != currentUser.id) {
+                throw new ForbiddenException("Is not your lesson")
+            }
         }
 
         // const week_day = lessonGroup?.groups.week_day

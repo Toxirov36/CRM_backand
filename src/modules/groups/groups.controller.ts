@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { GroupsService } from './groups.service';
 import { CreateGroupDto } from './dto/create.dto';
 import { AuthGuard } from 'src/common/guards/jwt-auth.guard';
@@ -22,10 +22,23 @@ export class GroupsController {
     }
 
     @ApiOperation({
-        summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
+        summary: `${Role.STUDENT}`
     })
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles(Role.SUPERADMIN, Role.ADMIN)
+    @Roles(Role.STUDENT)
+    @Get(":groupId/lessons")
+    getLessonsByGroupId(
+        @Param("groupId", ParseIntPipe) groupId: number,
+        @Req() req: Request
+    ) {
+        return this.groupService.getLessonsByGroupId(groupId, req["user"].id)
+    }
+
+    @ApiOperation({
+        summary: `${Role.SUPERADMIN}, ${Role.ADMIN}, ${Role.TEACHER}`
+    })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.SUPERADMIN, Role.ADMIN, Role.TEACHER)
     @Get("all")
     getAllGroups(
         @Query() search: filterDto
@@ -54,8 +67,10 @@ export class GroupsController {
     }
 
     @ApiOperation({
-        summary: 'Guruh dars jadvalini oylar bo\'yicha qaytaradi. Misol: { 1: ["2026-01-15", ...], 2: [...] }'
+        summary: `${Role.SUPERADMIN}, ${Role.ADMIN}, ${Role.TEACHER}`
     })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.SUPERADMIN, Role.ADMIN, Role.TEACHER)
     @Get(":id/schedules")
     getGroupSchedules(
         @Param("id", ParseIntPipe) id: number

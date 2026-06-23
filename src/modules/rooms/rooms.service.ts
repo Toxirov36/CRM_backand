@@ -47,6 +47,18 @@ export class RoomsService {
             throw new ConflictException("Room not found")
         }
 
+        // Check if room is assigned to any active group
+        const activeGroups = await this.prisma.group.findMany({
+            where: {
+                room_id: id,
+                status: Status.active
+            }
+        })
+
+        if (activeGroups.length > 0) {
+            throw new ConflictException("Bu xona guruhga biriktirilgan. Avval guruhdan ajrating.")
+        }
+
         await this.prisma.room.update({
             where: { id },
             data: { status: Status.inactive }

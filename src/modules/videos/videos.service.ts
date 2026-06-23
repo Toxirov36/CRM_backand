@@ -57,6 +57,7 @@ export class VideosService {
             select: {
                 groups: {
                     select: {
+                        id: true,
                         teacher_id: true
                     }
                 }
@@ -67,8 +68,17 @@ export class VideosService {
             throw new NotFoundException("Lesson not found with this group");
         }
 
-        if (currentUser.role === Role.TEACHER && lesson.groups.teacher_id !== currentUser.id) {
-            throw new ForbiddenException("Is not your lesson");
+        if (currentUser.role === Role.TEACHER) {
+            const isAssigned = await this.prisma.groupTeacher.findFirst({
+                where: {
+                    group_id: payload.group_id,
+                    teacher_id: currentUser.id,
+                    status: 'active'
+                }
+            });
+            if (!isAssigned && lesson.groups.teacher_id !== currentUser.id) {
+                throw new ForbiddenException("Is not your lesson");
+            }
         }
 
         const video = await this.prisma.video.create({
@@ -107,6 +117,7 @@ export class VideosService {
                 },
                 groups: {
                     select: {
+                        id: true,
                         teacher_id: true
                     }
                 }
@@ -117,8 +128,17 @@ export class VideosService {
             throw new NotFoundException("Video not found");
         }
 
-        if (currentUser.role === Role.TEACHER && existingVideo.groups.teacher_id !== currentUser.id) {
-            throw new ForbiddenException("Is not your video");
+        if (currentUser.role === Role.TEACHER) {
+            const isAssigned = await this.prisma.groupTeacher.findFirst({
+                where: {
+                    group_id: existingVideo.group_id,
+                    teacher_id: currentUser.id,
+                    status: 'active'
+                }
+            });
+            if (!isAssigned && existingVideo.groups.teacher_id !== currentUser.id) {
+                throw new ForbiddenException("Is not your video");
+            }
         }
 
         if (payload.lesson_id) {
@@ -157,7 +177,7 @@ export class VideosService {
             select: {
                 file: true,
                 groups: {
-                    select: { teacher_id: true }
+                    select: { id: true, teacher_id: true }
                 }
             }
         });
@@ -166,8 +186,17 @@ export class VideosService {
             throw new NotFoundException("Video not found");
         }
 
-        if (currentUser.role === Role.TEACHER && existingVideo.groups?.teacher_id !== currentUser.id) {
-            throw new ForbiddenException("Is not your video");
+        if (currentUser.role === Role.TEACHER) {
+            const isAssigned = await this.prisma.groupTeacher.findFirst({
+                where: {
+                    group_id: existingVideo.groups?.id,
+                    teacher_id: currentUser.id,
+                    status: 'active'
+                }
+            });
+            if (!isAssigned && existingVideo.groups?.teacher_id !== currentUser.id) {
+                throw new ForbiddenException("Is not your video");
+            }
         }
 
         // ✅ Faylni o'chirish:

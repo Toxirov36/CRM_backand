@@ -3,11 +3,14 @@ import { PrismaService } from 'src/core/database/prisma.service';
 import { CreateHomeworkDto } from './dto/create.dto';
 import { HomeworkStatus, Role } from '@prisma/client';
 import HomeworkResultDto from './dto/homework.result.dto';
-import { title } from 'process';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class HomeworkService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private readonly notificationsService: NotificationsService,
+    ) { }
 
     async getOwnHomework(lessonId: number, currentUser: { id: number }) {
         const myLessons = await this.prisma.homework.findMany({
@@ -104,7 +107,7 @@ export class HomeworkService {
                     homeworkStatus: true, // ✅ qo'shing
                     homeworkAnswerStudent: {
                         select: {
-                            id:true,
+                            id: true,
                             title: true,  // ✅
                             file: true,   // ✅
                             students: {
@@ -189,7 +192,7 @@ export class HomeworkService {
         }
     }
 
-    async getGroupHomeworkStudentResult(groupId: number, homeworkId: number, studentId: number) {
+    async getGroupHomeworkStudentResult(groupId: number, homeworkId: number, studentId: number, lessonId: number) {
         const studentResult = await this.prisma.homeworkAnswerStudent.findFirst({
             where: {
                 homework_id: homeworkId,
@@ -198,6 +201,7 @@ export class HomeworkService {
                 id: true,
                 file: true,
                 title: true,
+                created_at: true,
                 students: {
                     select: {
                         id: true,
@@ -207,9 +211,88 @@ export class HomeworkService {
                 }
             }
         })
+
+        const homework = await this.prisma.homework.findFirst({
+            where: {
+                id: homeworkId,
+            }, select: {
+                id: true,
+                title: true,
+                file: true,
+            }
+        })
+
+        let lessons: any = await this.prisma.lesson.findFirst({
+            where: {
+                group_id: groupId,
+                id: lessonId
+            },
+            select: {
+                homework: {
+                    where: {
+                        id: homeworkId
+                    }, select: {
+                        homeworkAnswerStudents: {
+                            where: {
+                                student_id: studentId
+                            },
+                            select: {
+                                status: true,
+                                homeworkResults: {
+                                    select: {
+                                        grade: true,
+                                        title: true,
+                                        homeworkStatus: true,
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: {
+                created_at: 'desc'
+            }
+        })
+
+        let status = "Bajarilmagan"
+        let grade = null;
+        let comment = "";
+
+        if (lessons && lessons.homework && lessons.homework.length > 0) {
+            const answer = lessons.homework[0].homeworkAnswerStudents?.[0];
+            if (answer) {
+                const result = answer.homeworkResults?.[0];
+                if (result) {
+                    grade = result.grade;
+                    comment = result.title;
+                    if (result.homeworkStatus === HomeworkStatus.completed || result.homeworkStatus === HomeworkStatus.checked) {
+                        status = "Qabul qilingan";
+                    } else if (result.homeworkStatus === HomeworkStatus.rejected) {
+                        status = "Qaytarilgan";
+                    } else if (result.homeworkStatus === HomeworkStatus.failed) {
+                        status = "Bajarilmagan";
+                    }
+                } else {
+                    status = "Kutayotganlar";
+                }
+            }
+        } else {
+            status = "Berilmagan";
+        }
+
         return {
             success: true,
-            data: studentResult
+            data: {
+                id: studentResult?.id || null,
+                file: studentResult?.file || null,
+                title: studentResult?.title || "",
+                created_at: studentResult?.created_at || null,
+                students: studentResult?.students || null,
+                status,
+                grade,
+                comment
+            }
         }
     }
 
@@ -306,6 +389,7 @@ export class HomeworkService {
             select: {
                 groups: {
                     select: {
+                        id: true,
                         teacher_id: true
                     }
                 }
@@ -316,8 +400,27 @@ export class HomeworkService {
             throw new NotFoundException("Lesson not fount with this id")
         }
 
-        if (currentUser.role == Role.TEACHER && existLesson.groups.teacher_id != currentUser.id) {
-            throw new ForbiddenException("Is not your lesson")
+        const existHomework = await this.prisma.homework.findFirst({
+            where: {
+                lesson_id: payload.lesson_id
+            }
+        })
+
+        if (existHomework) {
+            throw new ForbiddenException("Bu dars uchun allaqachon uyga vazifa yaratilgan")
+        }
+
+        if (currentUser.role == Role.TEACHER) {
+            const isAssigned = await this.prisma.groupTeacher.findFirst({
+                where: {
+                    group_id: existLesson.groups.id,
+                    teacher_id: currentUser.id,
+                    status: 'active'
+                }
+            });
+            if (!isAssigned && existLesson.groups.teacher_id != currentUser.id) {
+                throw new ForbiddenException("Is not your lesson")
+            }
         }
 
         await this.prisma.homework.create({
@@ -328,6 +431,12 @@ export class HomeworkService {
                 user_id: currentUser.role != "TEACHER" ? currentUser.id : null
             }
         })
+
+        await this.notificationsService.createForGroup(
+            payload.group_id,
+            "Yangi uy vazifasi",
+            `Sizga yangi vazifa berildi: ${payload.title}`
+        );
 
         return {
             success: true,
@@ -383,6 +492,24 @@ export class HomeworkService {
                 status: HomeworkStatus.checked
             }
         })
+
+        const answer = await this.prisma.homeworkAnswerStudent.findUnique({
+            where: { id: payload.homework_answer_id },
+            select: {
+                student_id: true,
+                homework: {
+                    select: { title: true }
+                }
+            }
+        });
+
+        if (answer) {
+            await this.notificationsService.createForStudent(
+                answer.student_id,
+                "Vazifa tekshirildi",
+                `"${answer.homework.title}" mavzusidagi vazifangiz tekshirildi. Baho: ${payload.grade}`
+            );
+        }
 
         return {
             success: true,

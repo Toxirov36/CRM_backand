@@ -28,10 +28,10 @@ export class HomeworkController {
     }
 
     @ApiOperation({
-        summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`,
+        summary: `${Role.SUPERADMIN}, ${Role.ADMIN}, ${Role.TEACHER}`
     })
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles(Role.SUPERADMIN, Role.ADMIN)
+    @Roles(Role.SUPERADMIN, Role.ADMIN, Role.TEACHER)
     @Get("group/:groupId/homework/:homeworkId/results")
     @ApiQuery({
         name: "status",
@@ -51,13 +51,14 @@ export class HomeworkController {
     })
     @UseGuards(AuthGuard, RolesGuard)
     @Roles(Role.SUPERADMIN, Role.ADMIN, Role.TEACHER)
-    @Get("group/:groupId/homework/:homeworkId/result/:studentId")
+    @Get("group/:groupId/lesson/:lessonId/homework/:homeworkId/result/:studentId")
     getGroupHomeworkStudentResult(
-        @Param("groupId", ParseIntPipe) groupId : number,
-        @Param("homeworkId", ParseIntPipe) homeworkId : number,
-        @Param("studentId", ParseIntPipe) studentId : number
-    ){
-        return this.homeworkService.getGroupHomeworkStudentResult(groupId, homeworkId, studentId)
+        @Param("groupId", ParseIntPipe) groupId: number,
+        @Param("lessonId", ParseIntPipe) lessonId: number,
+        @Param("homeworkId", ParseIntPipe) homeworkId: number,
+        @Param("studentId", ParseIntPipe) studentId: number
+    ) {
+        return this.homeworkService.getGroupHomeworkStudentResult(groupId, homeworkId, studentId, lessonId)
     }
 
     @ApiOperation({
@@ -118,10 +119,10 @@ export class HomeworkController {
     }
 
     @ApiOperation({
-        summary: `${Role.SUPERADMIN}, ${Role.ADMIN}`
+        summary: `${Role.SUPERADMIN}, ${Role.ADMIN}, ${Role.TEACHER}`
     })
     @UseGuards(AuthGuard, RolesGuard)
-    @Roles(Role.SUPERADMIN, Role.ADMIN)
+    @Roles(Role.SUPERADMIN, Role.ADMIN, Role.TEACHER)
     @Post("group/:groupId/homework/:homeworkId/check")
     submitHomeworkResult(
         @Param("groupId", ParseIntPipe) groupId: number,

@@ -8,7 +8,7 @@ import { RolesGuard } from 'src/common/guards/role.guard';
 import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
 @ApiBearerAuth()
-@Controller('lessons')
+@Controller()
 export class LessonsController {
     constructor(private readonly lessonService: LessonsService){}
 
@@ -17,7 +17,35 @@ export class LessonsController {
     })
     @UseGuards(AuthGuard,RolesGuard)
     @Roles(Role.STUDENT)
-    @Get("my/group/:groupId")
+    @Get("groups/:groupId/lessons/:lessonId/videos")
+    getLessonVideos(
+        @Param("groupId", ParseIntPipe) groupId : number,
+        @Param("lessonId", ParseIntPipe) lessonId : number,
+        @Req() req : Request
+    ){
+        return this.lessonService.getLessonVideos(groupId, lessonId, req['user'])
+    }
+
+    @ApiOperation({
+        summary:`${Role.STUDENT}`
+    })
+    @UseGuards(AuthGuard,RolesGuard)
+    @Roles(Role.STUDENT)
+    @Get("groups/:groupId/lesson/:lessonId/homework")
+    getLessonHomework(
+        @Param("groupId", ParseIntPipe) groupId : number,
+        @Param("lessonId", ParseIntPipe) lessonId : number,
+        @Req() req : Request
+    ){
+        return this.lessonService.getLessonHomework(groupId, lessonId, req['user'])
+    }
+
+    @ApiOperation({
+        summary:`${Role.STUDENT}`
+    })
+    @UseGuards(AuthGuard,RolesGuard)
+    @Roles(Role.STUDENT)
+    @Get("lessons/my/group/:groupId")
     getMyGroupLessons(
         @Param("groupId", ParseIntPipe) groupId : number,
         @Req() req : Request
@@ -31,7 +59,7 @@ export class LessonsController {
     })
     @UseGuards(AuthGuard,RolesGuard)
     @Roles(Role.ADMIN,Role.SUPERADMIN)
-    @Get()
+    @Get("lessons")
     getAllLessons(){
         return this.lessonService.getAllLessons()
     }
@@ -41,7 +69,7 @@ export class LessonsController {
     })
     @UseGuards(AuthGuard,RolesGuard)
     @Roles(Role.ADMIN,Role.SUPERADMIN,Role.TEACHER)
-    @Get("group/:groupId")
+    @Get("lessons/group/:groupId")
     getLessonsByGroup(
         @Param("groupId", ParseIntPipe) groupId: number
     ){
@@ -53,7 +81,7 @@ export class LessonsController {
     })
     @UseGuards(AuthGuard,RolesGuard)
     @Roles(Role.ADMIN,Role.TEACHER,Role.SUPERADMIN)
-    @Post()
+    @Post("lessons")
     createLesson(
         @Body() payload : CreateLessonDto,
         @Req() req : Request

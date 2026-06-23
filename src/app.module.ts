@@ -14,6 +14,8 @@ import { LessonsModule } from './modules/lessons/lessons.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { HomeworkModule } from './modules/homework/homework.module';
 import { VideosModule } from './modules/videos/videos.module';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -25,6 +27,10 @@ import { VideosModule } from './modules/videos/videos.module';
     ConfigModule.forRoot({
       isGlobal: true
     }),
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 5,
+    }]),
     AuthModule,
     PrismaModule,
     UsersModule,
@@ -36,7 +42,8 @@ import { VideosModule } from './modules/videos/videos.module';
     LessonsModule,
     AttendanceModule,
     HomeworkModule,
-    VideosModule
+    VideosModule,
+    NotificationsModule
   ],
 })
 export class AppModule { }

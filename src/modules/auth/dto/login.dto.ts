@@ -39,3 +39,34 @@ export class CreateSuperAdminDto {
     @IsString()
     address?: string;
 }
+
+export class ForgotPasswordDto {
+    @ApiProperty({ example: "998901234567" })
+    @IsString()
+    phone: string;
+}
+
+export class VerifyCodeDto {
+    @ApiProperty({ example: "998901234567" })
+    @IsString()
+    phone: string;
+
+    @ApiProperty({ example: "1234" })
+    @IsString()
+    code: string;
+}
+
+export class ResetPasswordDto {
+    @ApiProperty({ example: "998901234567" })
+    @IsString()
+    phone: string;
+
+    @ApiProperty({ example: "1234" })
+    @IsString()
+    code: string;
+
+    @ApiProperty({ example: "newPassword123" })
+    @IsString()
+    @MinLength(6)
+    newPassword: string;
+}

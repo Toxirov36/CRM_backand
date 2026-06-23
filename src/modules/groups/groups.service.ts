@@ -1,12 +1,63 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/core/database/prisma.service';
 import { CreateGroupDto } from './dto/create.dto';
-import { Status } from '@prisma/client';
+import { Status, TeacherGroupStatus } from '@prisma/client';
 import { filterDto } from './dto/search';
 
 @Injectable()
 export class GroupsService {
     constructor(private prisma: PrismaService) { }
+
+    async getLessonsByGroupId(groupId: number, userId: number) {
+        const existStudent = await this.prisma.studentGroup.findFirst({
+            where: {
+                student_id: userId,
+                group_id: groupId,
+            }
+        })
+
+        if (!existStudent) {
+            throw new NotFoundException("Student not found with this id")
+        }
+
+        const lessons = await this.prisma.lesson.findMany({
+            where: {
+                group_id: groupId,
+            },select:{
+                id: true,
+                topic: true,
+                created_at: true,
+                _count:{
+                    select:{
+                        videos: {
+                            where: { status: Status.active }
+                        },
+                    }
+                },
+                homework:{
+                    select:{
+                        id: true
+                    }
+                }
+            }
+        })
+
+        const lessonsFormated = lessons.map(lesson => {
+            return {
+                id: lesson.id,
+                topic: lesson.topic,
+                created_at: lesson.created_at,
+                homeworkId: lesson.homework[0]?.id ? lesson.homework[0].id : null,
+                videoCount: lesson._count.videos || 0
+            }
+        })
+
+        return {
+            success: true,
+            data: lessonsFormated
+        }
+        
+    }
 
     async getGroupOne(groupId: number) {
         const existGroup = await this.prisma.group.findFirst({
@@ -84,11 +135,16 @@ export class GroupsService {
                         name: true
                     }
                 },
-                teachers: {
+                groupTeachers: {
                     select: {
-                        id: true,
-                        first_name: true,
-                        last_name: true
+                        teacher: {
+                            select: {
+                                id: true,
+                                first_name: true,
+                                last_name: true,
+                                photo: true
+                            }
+                        }
                     }
                 },
                 studentGroups: {
@@ -109,10 +165,25 @@ export class GroupsService {
             }
         })
 
+        const BASE_URL = "http://localhost:3000";
         const dataFormatter = groups.map(g => {
-            const { studentGroups, ...rest } = g;
+            const { studentGroups, groupTeachers, ...rest } = g;
+            const mappedGroupTeachers = groupTeachers.map(gt => {
+                if (gt.teacher) {
+                    return {
+                        ...gt,
+                        teacher: {
+                            ...gt.teacher,
+                            photo: gt.teacher.photo ? `${BASE_URL}/uploads/${gt.teacher.photo}` : null
+                        }
+                    };
+                }
+                return gt;
+            });
             return {
                 ...rest,
+                groupTeachers: mappedGroupTeachers,
+                teachers: mappedGroupTeachers?.[0]?.teacher || null,
                 students: studentGroups.map(sg => sg.students)
             };
         });
@@ -227,6 +298,14 @@ export class GroupsService {
                 start_date: new Date(payload.start_date)
             }
         });
+
+        await this.prisma.groupTeacher.create({
+            data: {
+                group_id: newGroup.id,
+                teacher_id: payload.teacher_id,
+                status: TeacherGroupStatus.active
+            }
+        }).catch(() => {});
 
         return {
             success: true,
