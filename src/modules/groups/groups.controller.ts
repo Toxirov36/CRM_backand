@@ -14,7 +14,12 @@ export class GroupsController {
     constructor(private readonly groupService: GroupsService) { }
 
 
-    @Get("one/students/:groupId")
+    @ApiOperation({
+        summary: `${Role.SUPERADMIN}, ${Role.ADMIN}, ${Role.TEACHER}`
+    })
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(Role.SUPERADMIN, Role.ADMIN, Role.TEACHER)
+    @Get("one/:groupId")
     getGroupOne(
         @Param("groupId", ParseIntPipe) groupId: number
     ) {

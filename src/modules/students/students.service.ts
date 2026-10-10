@@ -28,14 +28,32 @@ export class StudentsService {
                         id: true,
                         name: true,
                         start_date: true,
+                        teacher_id: true,
+                        week_day: true,
+                        start_time: true,
                         courses: {
                             select: {
                                 name: true,
+                                duration_month: true,
                             }
                         },
                         _count: {
                             select: {
                                 groupTeachers: true
+                            }
+                        },
+                        groupTeachers: {
+                            where: {
+                                status: 'active'
+                            },
+                            select: {
+                                teacher: {
+                                    select: {
+                                        id: true,
+                                        first_name: true,
+                                        last_name: true,
+                                    }
+                                }
                             }
                         }
                     }
@@ -43,15 +61,32 @@ export class StudentsService {
             }
         })
 
-        const formattedGroup = myGroups.map(el => ({
-            groupName: el.groups.name,
-            course: el.groups.courses.name,
-            teachersCount: el.groups._count.groupTeachers,
-            startDate: el.groups.start_date,
-            groupId: el.groups.id
-        }))
+        const now = new Date()
 
-        console.log(formattedGroup)
+        const formattedGroup = myGroups.map(el => {
+            const startDate = new Date(el.groups.start_date)
+            const endDate = new Date(startDate)
+            endDate.setMonth(endDate.getMonth() + el.groups.courses.duration_month)
+
+            const isCompleted = endDate < now
+
+            return {
+                groupName: el.groups.name,
+                course: el.groups.courses.name,
+                teachersCount: el.groups._count.groupTeachers,
+                startDate: el.groups.start_date,
+                endDate: endDate,
+                isCompleted,
+                groupId: el.groups.id,
+                weekDays: el.groups.week_day,
+                startTime: el.groups.start_time,
+                teachers: el.groups.groupTeachers.map(gt => ({
+                    id: gt.teacher.id,
+                    name: `${gt.teacher.first_name} ${gt.teacher.last_name}`,
+                    role: gt.teacher.id === el.groups.teacher_id ? 'Teacher' : 'Assistant',
+                }))
+            }
+        })
 
         return {
             success: true,
@@ -90,7 +125,7 @@ export class StudentsService {
             })
         ]);
 
-        const BASE_URL = "http://localhost:3000";
+        const BASE_URL = process.env.PUBLIC_BASE_URL || "http://localhost:3000";
         const result = students.map(s => ({
             ...s,
             photo: s.photo ? `${BASE_URL}/uploads/${s.photo}` : null,
@@ -121,7 +156,7 @@ export class StudentsService {
             }
         })
 
-        const BASE_URL = "http://localhost:3000";
+        const BASE_URL = process.env.PUBLIC_BASE_URL || "http://localhost:3000";
         const result = students.map(s => ({
             ...s,
             photo: s.photo ? `${BASE_URL}/uploads/${s.photo}` : null,
@@ -295,7 +330,7 @@ export class StudentsService {
             throw new BadRequestException("Student topilmadi");
         }
 
-        const BASE_URL = "http://localhost:3000";
+        const BASE_URL = process.env.PUBLIC_BASE_URL || "http://localhost:3000";
         return {
             success: true,
             data: {

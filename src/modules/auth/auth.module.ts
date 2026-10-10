@@ -5,16 +5,19 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { GoogleStrategy } from './google.strategy';
 import { EskizService } from 'src/common/service/sms';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports:[
     PassportModule,
-    JwtModule.register({
-      secret:"shapltoli",
-      signOptions:{
-        expiresIn:"1h"
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const secret = config.get<string>('JWT_SECRET');
+        if (!secret) throw new Error('JWT_SECRET is required');
+        return { secret, signOptions: { expiresIn: '1h' }, global: true };
       },
-      global:true
     })
   ],
   controllers: [AuthController],

@@ -23,19 +23,19 @@ export class GroupsService {
         const lessons = await this.prisma.lesson.findMany({
             where: {
                 group_id: groupId,
-            },select:{
+            }, select: {
                 id: true,
                 topic: true,
                 created_at: true,
-                _count:{
-                    select:{
+                _count: {
+                    select: {
                         videos: {
                             where: { status: Status.active }
                         },
                     }
                 },
-                homework:{
-                    select:{
+                homework: {
+                    select: {
                         id: true
                     }
                 }
@@ -56,48 +56,96 @@ export class GroupsService {
             success: true,
             data: lessonsFormated
         }
-        
+
     }
 
     async getGroupOne(groupId: number) {
-        const existGroup = await this.prisma.group.findFirst({
+        const group = await this.prisma.group.findFirst({
             where: {
                 id: groupId,
-                status: Status.active
-            }
-        })
-
-        if (!existGroup) {
-            throw new NotFoundException("Group not found with this id")
-        }
-
-        const groupStudents = await this.prisma.studentGroup.findMany({
-            where: {
-                group_id: groupId,
-                status: Status.active
+                status: Status.active,
             },
             select: {
-                students: {
+                id: true,
+                name: true,
+                max_student: true,
+                start_date: true,
+                start_time: true,
+                week_day: true,
+                courses: {
                     select: {
                         id: true,
-                        first_name: true,
-                        last_name: true,
-                        phone: true,
-                        email: true,
-                        photo: true,
-                        birth_date: true,
-                        created_at: true
+                        name: true,
+                        duration_month: true
+                    }
+                },
+                rooms: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                },
+                groupTeachers: {
+                    select: {
+                        teacher: {
+                            select: {
+                                id: true,
+                                first_name: true,
+                                last_name: true,
+                                photo: true
+                            }
+                        }
+                    }
+                },
+                studentGroups: {
+                    where: {
+                        status: Status.active
+                    },
+                    select: {
+                        id: true,
+                        students: {
+                            select: {
+                                id: true,
+                                first_name: true,
+                                last_name: true,
+                            }
+                        }
                     }
                 }
             }
-        })
+        });
 
-        const dataFormatter = groupStudents.map(el => el.students)
+        if (!group) {
+            throw new NotFoundException("Group not found");
+        }
+
+        const BASE_URL = process.env.PUBLIC_BASE_URL || "http://localhost:3000";
+        const { studentGroups, groupTeachers, ...rest } = group;
+
+        const mappedGroupTeachers = groupTeachers.map(gt => {
+            if (gt.teacher) {
+                return {
+                    ...gt,
+                    teacher: {
+                        ...gt.teacher,
+                        photo: gt.teacher.photo ? `${BASE_URL}/uploads/${gt.teacher.photo}` : null
+                    }
+                };
+            }
+            return gt;
+        });
+
+        const dataFormatter = {
+            ...rest,
+            groupTeachers: mappedGroupTeachers,
+            teachers: mappedGroupTeachers?.[0]?.teacher || null,
+            students: studentGroups.map(sg => sg.students)
+        };
 
         return {
             success: true,
             data: dataFormatter
-        }
+        };
     }
 
     async getAllGroups(search: filterDto) {
@@ -116,7 +164,7 @@ export class GroupsService {
         const groups = await this.prisma.group.findMany({
             where: searchWhere,
             select: {
-                id: true, 
+                id: true,
                 name: true,
                 max_student: true,
                 start_date: true,
@@ -165,7 +213,7 @@ export class GroupsService {
             }
         })
 
-        const BASE_URL = "http://localhost:3000";
+        const BASE_URL = process.env.PUBLIC_BASE_URL || "http://localhost:3000";
         const dataFormatter = groups.map(g => {
             const { studentGroups, groupTeachers, ...rest } = g;
             const mappedGroupTeachers = groupTeachers.map(gt => {
@@ -305,7 +353,7 @@ export class GroupsService {
                 teacher_id: payload.teacher_id,
                 status: TeacherGroupStatus.active
             }
-        }).catch(() => {});
+        }).catch(() => { });
 
         return {
             success: true,

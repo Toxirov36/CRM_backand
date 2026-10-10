@@ -15,4 +15,9 @@ export class CreateLessonDto {
     @IsOptional()
     @IsString()
     description? : string
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    created_at? : string
 }

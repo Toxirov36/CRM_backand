@@ -309,7 +309,13 @@ export class LessonsService {
                 id: true,
                 topic: true,
                 description: true,
-                created_at: true
+                created_at: true,
+                attendances: {
+                    select: {
+                        student_id: true,
+                        isPresent: true
+                    }
+                }
             },
             orderBy: {
                 created_at: 'desc'
@@ -348,11 +354,13 @@ export class LessonsService {
             }
         }
 
+        const { created_at, ...lessonData } = payload;
         const newLesson = await this.prisma.lesson.create({
             data: {
-                ...payload,
+                ...lessonData,
                 teacher_id: currentUser.role == "TEACHER" ? currentUser.id : null,
-                user_id: currentUser.role != "TEACHER" ? currentUser.id : null
+                user_id: currentUser.role != "TEACHER" ? currentUser.id : null,
+                ...(created_at ? { created_at: new Date(created_at) } : {})
             }
         })
 

@@ -1,0 +1,18 @@
+[Unit]
+Description=Study CRM API
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=studycrm
+Group=studycrm
+WorkingDirectory=/opt/studycrm/backend
+EnvironmentFile=/opt/studycrm/backend/.env.production
+ExecStart=/opt/studycrm/node/bin/node /opt/studycrm/backend/dist/src/main.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

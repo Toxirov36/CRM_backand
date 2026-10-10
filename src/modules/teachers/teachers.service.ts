@@ -31,7 +31,7 @@ export class TeachersService {
             }
         })
 
-        const BASE_URL = "http://localhost:3000";
+        const BASE_URL = process.env.PUBLIC_BASE_URL || "http://localhost:3000";
         const result = teachers.map(s => ({
             ...s,
             photo: s.photo ? `${BASE_URL}/uploads/${s.photo}` : null,
@@ -104,7 +104,7 @@ export class TeachersService {
             }
         })
 
-        const BASE_URL = "http://localhost:3000";
+        const BASE_URL = process.env.PUBLIC_BASE_URL || "http://localhost:3000";
         const dataFormatter = groups.map(g => {
             const { studentGroups, groupTeachers, ...rest } = g;
             const mappedGroupTeachers = groupTeachers.map(gt => {
@@ -158,7 +158,7 @@ export class TeachersService {
             }
         })
 
-        const BASE_URL = "http://localhost:3000";
+        const BASE_URL = process.env.PUBLIC_BASE_URL || "http://localhost:3000";
         const result = teachers.map(s => ({
             ...s,
             photo: s.photo ? `${BASE_URL}/uploads/${s.photo}` : null,

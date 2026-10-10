@@ -81,6 +81,7 @@ model User {
   homework        Homework[]
   videos          Video[]
   homeworkResults HomeworkResult[]
+  refreshTokens   RefreshToken[]
 }
 
 model Student {
@@ -101,6 +102,7 @@ model Student {
   attendances            Attendance[]
   homeworkAnswerStudents HomeworkAnswerStudent[]
   notifications          Notification[]
+  refreshTokens          RefreshToken[]
 }
 
 model Teacher {
@@ -123,6 +125,7 @@ model Teacher {
   videos          Video[]
   homeworkResults HomeworkResult[]
   groupTeachers   GroupTeacher[]
+  refreshTokens   RefreshToken[]
 }
 
 model Course {
@@ -334,4 +337,18 @@ model PasswordResetCode {
   expires_at DateTime
   used       Boolean  @default(false)
   created_at DateTime @default(now())
+}
+
+model RefreshToken {
+  id         Int      @id @default(autoincrement())
+  token      String   @unique
+  expires_at DateTime
+  created_at DateTime @default(now())
+  userId     Int?
+  studentId  Int?
+  teacherId  Int?
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  student    Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher    Teacher? @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 }

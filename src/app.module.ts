@@ -4,7 +4,7 @@ import { PrismaModule } from './core/database/prisma.module';
 import { UsersModule } from './modules/users/users.module';
 import { StudentsModule } from './modules/students/students.module';
 import { TeachersModule } from './modules/teachers/teachers.module';
-import { CoursesModule } from './modules/courses/courses.module';
+import { CoursesModule } from './modules/rooms/courses/courses.module';
 import { GroupsModule } from './modules/groups/groups.module';
 import { RoomsModule } from './modules/rooms/rooms.module';
 import { AuthModule } from './modules/auth/auth.module';

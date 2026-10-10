@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
-import { CreateSuperAdminDto, LoginDto, ForgotPasswordDto, VerifyCodeDto, ResetPasswordDto } from './dto/login.dto';
+import { CreateSuperAdminDto, LoginDto, ForgotPasswordDto, VerifyCodeDto, ResetPasswordDto, RefreshTokenDto } from './dto/login.dto';
 import { AuthService } from './auth.service';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { AuthGuard } from '@nestjs/passport';
@@ -23,7 +23,18 @@ export class AuthController {
     @UseGuards(AuthGuard('google'))
     async googleAuthCallback(@Req() req: any, @Res() res: any) {
         const result = await this.authService.googleLogin(req.user);
-        res.redirect(`http://localhost:5173/auth/callback?token=${result.accessToken}`);
+        const baseUrl = process.env.PUBLIC_BASE_URL || 'http://localhost:5173';
+        res.redirect(`${baseUrl}/auth/callback?token=${result.accessToken}&refreshToken=${result.refreshToken}`);
+    }
+
+    @Post("refresh")
+    refreshTokens(@Body() body: RefreshTokenDto) {
+        return this.authService.refreshTokens(body.refreshToken);
+    }
+
+    @Post("logout")
+    logout(@Body() body: RefreshTokenDto) {
+        return this.authService.logout(body.refreshToken);
     }
 
     @Post('forgot-password')

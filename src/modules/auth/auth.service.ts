@@ -37,76 +37,124 @@ export class AuthService {
             throw new UnauthorizedException("Invalid phone or password");
         }
 
+        const tokens = await this.generateTokenPair(user);
+
         return {
             success: true,
             message: "You're logged",
             role: user.role,
-            accessToken: this.jwtService.sign({
-                first_name: user.first_name,
-                last_name: user.last_name,
-                photo: user.photo,
-                id: user.id,
-                email: user.email,
-                role: user.role
-            })
+            ...tokens
         };
     }
 
-    async googleLogin(googleUser: any) {
-        const student = await this.prisma.student.findUnique({
-            where: { email: googleUser.email }
-        });
+    private async generateTokenPair(account: any) {
+        const payload = {
+            id: account.id,
+            role: account.role,
+            first_name: account.first_name,
+            last_name: account.last_name,
+            photo: account.photo,
+            email: account.email
+        };
 
-        if (student) {
-            return {
-                accessToken: this.jwtService.sign({
-                    id: student.id,
-                    role: student.role,
-                    first_name: student.first_name,
-                    last_name: student.last_name,
-                    photo: student.photo,
-                    email: student.email
-                })
-            };
+        const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+        const refreshToken = this.jwtService.sign(payload, { expiresIn: '30d' });
+
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+        const tokenData: any = {
+            token: refreshToken,
+            expires_at: expiresAt,
+        };
+
+        if (account.role === 'STUDENT') {
+            tokenData.studentId = account.id;
+        } else if (account.role === 'TEACHER') {
+            tokenData.teacherId = account.id;
+        } else {
+            tokenData.userId = account.id;
         }
 
-        const user = await this.prisma.user.findUnique({
-            where: { email: googleUser.email }
+        await this.prisma.refreshToken.create({
+            data: tokenData
         });
 
-        if (user) {
-            return {
-                accessToken: this.jwtService.sign({
-                    id: user.id,
-                    role: user.role,
-                    first_name: user.first_name,
-                    last_name: user.last_name,
-                    photo: user.photo,
-                    email: user.email
-                })
-            };
-        }
-
-        const teacher = await this.prisma.teacher.findUnique({
-            where: { email: googleUser.email }
-        });
-
-        if (teacher) {
-            return {
-                accessToken: this.jwtService.sign({
-                    id: teacher.id,
-                    role: teacher.role,
-                    first_name: teacher.first_name,
-                    last_name: teacher.last_name,
-                    photo: teacher.photo,
-                    email: teacher.email
-                })
-            };
-        }
-
-        throw new UnauthorizedException("You don't have access to login");
+        return { accessToken, refreshToken };
     }
 
+    async googleLogin(googleUser: any) {
+        const queries = [
+            this.prisma.student.findUnique({ where: { email: googleUser.email } }),
+            this.prisma.user.findUnique({ where: { email: googleUser.email } }),
+            this.prisma.teacher.findUnique({ where: { email: googleUser.email } }),
+        ];
+
+        const [student, user, teacher] = await Promise.all(queries);
+        const account = student || user || teacher;
+
+        if (!account) {
+            throw new UnauthorizedException("You don't have access to login");
+        }
+
+        return this.generateTokenPair(account);
+    }
+
+    async refreshTokens(refreshToken: string) {
+        try {
+            const payload = await this.jwtService.verify(refreshToken);
+            if (!payload) {
+                throw new UnauthorizedException("Invalid refresh token");
+            }
+
+            const tokenRecord = await this.prisma.refreshToken.findUnique({
+                where: { token: refreshToken }
+            });
+
+            if (!tokenRecord) {
+                throw new UnauthorizedException("Refresh token not found or already used");
+            }
+
+            if (tokenRecord.expires_at < new Date()) {
+                await this.prisma.refreshToken.delete({ where: { id: tokenRecord.id } });
+                throw new UnauthorizedException("Refresh token expired");
+            }
+
+            // Check if user still exists
+            let account: any = null;
+            if (payload.role === 'STUDENT') {
+                account = await this.prisma.student.findUnique({ where: { id: payload.id } });
+            } else if (payload.role === 'TEACHER') {
+                account = await this.prisma.teacher.findUnique({ where: { id: payload.id } });
+            } else {
+                account = await this.prisma.user.findUnique({ where: { id: payload.id } });
+            }
+
+            if (!account || account.status === 'inactive') {
+                throw new UnauthorizedException("User no longer exists or is inactive");
+            }
+
+            // Token Rotation: Delete old token
+            await this.prisma.refreshToken.delete({
+                where: { id: tokenRecord.id }
+            });
+
+            // Generate new pair
+            return this.generateTokenPair(account);
+        } catch (error) {
+            throw new UnauthorizedException("Invalid refresh token");
+        }
+    }
+
+    async logout(refreshToken: string) {
+        try {
+            await this.prisma.refreshToken.deleteMany({
+                where: { token: refreshToken }
+            });
+            return { success: true, message: "Logged out successfully" };
+        } catch (error) {
+            return { success: true, message: "Logged out successfully" };
+        }
+    }
     async sendResetCode(phone: string) {
         let clean = (phone || "").trim();
         let stripped = clean;

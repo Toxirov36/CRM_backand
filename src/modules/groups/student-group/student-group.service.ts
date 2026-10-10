@@ -76,7 +76,7 @@ export class StudentGroupService {
             }
         })
 
-        if (existGroupStundetCount >= existGroup.max_student) {
+        if (existGroup.max_student > 0 && existGroupStundetCount >= existGroup.max_student) {
             throw new BadRequestException("Group is full")
         }
 
