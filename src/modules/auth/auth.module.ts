@@ -11,12 +11,13 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   imports:[
     PassportModule,
     JwtModule.registerAsync({
+      global: true,
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const secret = config.get<string>('JWT_SECRET');
         if (!secret) throw new Error('JWT_SECRET is required');
-        return { secret, signOptions: { expiresIn: '1h' }, global: true };
+        return { secret, signOptions: { expiresIn: '1h' } };
       },
     })
   ],
