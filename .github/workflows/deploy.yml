@@ -1,0 +1,36 @@
+name: Deploy backend
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: studycrm-backend-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.STUDYCRM_SSH_PRIVATE_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H 37.60.247.120 >> ~/.ssh/known_hosts
+
+      - name: Deploy backend on server
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes root@37.60.247.120 <<'REMOTE'
+          set -e
+          cd /opt/studycrm/backend
+          git fetch origin main
+          git reset --hard origin/main
+          /opt/studycrm/node/bin/npm ci
+          /opt/studycrm/node/bin/npm run build
+          systemctl restart studycrm-api
+          systemctl is-active --quiet studycrm-api
+          REMOTE
